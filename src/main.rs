@@ -1,4 +1,4 @@
-use bevy::{prelude::*, render::define_atomic_id, window::WindowResolution};
+use bevy::{prelude::*, window::WindowResolution};
 
 fn main() {
     let mut app = App::new();
@@ -17,6 +17,16 @@ fn main() {
     }))
     .add_plugins(breakout::graphics::Graphics)
     .add_plugins(breakout::gameplay::Gameplay);
+
+    // input -> gameplay -> graphic
+
+    app.configure_sets(
+        Update,
+        (
+            breakout::InputSet.before(breakout::GameplaySet),
+            breakout::GameplaySet.before(breakout::GraphicSet),
+        ),
+    );
 
     app.run();
 

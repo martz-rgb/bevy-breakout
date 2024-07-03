@@ -12,11 +12,17 @@ pub struct GridPosition {
     pub col: u32,
 }
 
+enum Direction {
+    None,
+    Left,
+    Right,
+}
+
 // from 0.00 to 1.00
 #[derive(Component)]
-struct HorizontalMovement {
-    x: f64,
-    speed: f64,
+struct Speed {
+    speed: f32,
+    current: Direction,
 }
 
 #[derive(Component)]
@@ -38,7 +44,7 @@ impl TileBundle {
         TileBundle {
             tile: Tile,
             position: GridPosition { row: row, col: col },
-            sprite: crate::graphics::tile_sprite(asset_server),
+            sprite: crate::graphics::tile_sprite(GridPosition { row: row, col: col }, asset_server),
             hp: HP {
                 max: hp.unwrap_or(1),
                 current: hp.unwrap_or(1),
@@ -50,7 +56,7 @@ impl TileBundle {
 #[derive(Bundle)]
 struct PlayerBundle {
     player: Player,
-    position: HorizontalMovement,
+    speed: Speed,
     sprite: SpriteBundle,
     hp: HP,
 }
@@ -59,7 +65,10 @@ impl PlayerBundle {
     fn new(hp: Option<i32>, asset_server: &Res<AssetServer>) -> Self {
         PlayerBundle {
             player: Player,
-            position: HorizontalMovement { x: 0., speed: 0. },
+            speed: Speed {
+                speed: 0.,
+                current: Direction::None,
+            },
             sprite: crate::graphics::player_sprite(asset_server),
             hp: HP {
                 max: hp.unwrap_or(3),
@@ -73,7 +82,7 @@ pub struct Gameplay;
 
 impl Plugin for Gameplay {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, init);
+        app.add_systems(Startup, init.in_set(super::GameplaySet));
     }
 }
 

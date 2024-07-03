@@ -31,7 +31,11 @@ const GRID_TRANSLATION: Vec3 = Vec3 {
     z: 0.,
 };
 
-const PLAYER_SPRITE: &str = "32.png";
+const PLAYER_SPRITE: &str = "tile.png";
+const PLAYER_WIDTH: u32 = 128;
+const PLAYER_HEIGHT: u32 = 32;
+
+const PLAYER_PADDING: u32 = 2 * PLAYER_HEIGHT;
 
 #[derive(Component)]
 pub struct MainCamera;
@@ -39,13 +43,28 @@ pub struct MainCamera;
 pub fn player_sprite(asset_server: &Res<AssetServer>) -> SpriteBundle {
     SpriteBundle {
         texture: asset_server.load(PLAYER_SPRITE),
+        transform: Transform {
+            translation: Vec3 {
+                x: 0., // center
+                y: -WINDOW_HEIGHT / 2. + PLAYER_PADDING as f32,
+                z: 0.,
+            },
+            ..Default::default()
+        },
         ..Default::default()
     }
 }
 
-pub fn tile_sprite(asset_server: &Res<AssetServer>) -> SpriteBundle {
+pub fn tile_sprite(
+    position: gameplay::GridPosition,
+    asset_server: &Res<AssetServer>,
+) -> SpriteBundle {
     SpriteBundle {
         texture: asset_server.load(TILE_SPRITE),
+        transform: Transform {
+            translation: position_tile(position),
+            ..Default::default()
+        },
         ..Default::default()
     }
 }
@@ -54,8 +73,9 @@ pub struct Graphics;
 
 impl Plugin for Graphics {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, init)
-            .add_systems(Update, (position_tiles, position_player));
+        app.add_systems(Startup, init.in_set(super::GraphicSet));
+
+        app.add_systems(Update, position_player.in_set(super::GraphicSet));
     }
 }
 
@@ -63,24 +83,43 @@ fn init(mut commands: Commands) {
     commands.spawn((MainCamera, Camera2dBundle::default()));
 }
 
-fn position_tiles(
-    mut tiles: Query<(&gameplay::GridPosition, &mut Transform), With<gameplay::Tile>>,
-) {
-    for (position, mut transform) in &mut tiles {
-        if position.col >= GRID_COLS || position.row >= GRID_ROWS {
-            // delete maybe
-            continue;
-        }
-
-        let translation = Vec3 {
-            x: (position.col * TILE_WIDTH) as f32,
-            y: -1. * (position.row * TILE_HEIGHT) as f32,
-            z: 0.,
+fn position_tile(position: gameplay::GridPosition) -> Vec3 {
+    if position.col >= GRID_COLS || position.row >= GRID_ROWS {
+        // error actually
+        return Vec3 {
+            ..Default::default()
         };
-
-        transform.translation =
-            WINDOW_TRANSLATION + translation + TILE_TRANSLATION + GRID_TRANSLATION;
     }
+
+    let mut translation = Vec3 {
+        x: (position.col * TILE_WIDTH) as f32,
+        y: -1. * (position.row * TILE_HEIGHT) as f32,
+        z: 0.,
+    };
+
+    translation += WINDOW_TRANSLATION + TILE_TRANSLATION + GRID_TRANSLATION;
+
+    return translation;
 }
 
 fn position_player() {}
+
+// fn position_tiles(
+//     mut tiles: Query<(&gameplay::GridPosition, &mut Transform), With<gameplay::Tile>>,
+// ) {
+//     for (position, mut transform) in &mut tiles {
+//         if position.col >= GRID_COLS || position.row >= GRID_ROWS {
+//             // delete maybe
+//             continue;
+//         }
+
+//         let translation = Vec3 {
+//             x: (position.col * TILE_WIDTH) as f32,
+//             y: -1. * (position.row * TILE_HEIGHT) as f32,
+//             z: 0.,
+//         };
+
+//         transform.translation =
+//             WINDOW_TRANSLATION + translation + TILE_TRANSLATION + GRID_TRANSLATION;
+//     }
+// }
